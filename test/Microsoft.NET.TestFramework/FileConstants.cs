@@ -9,8 +9,11 @@ namespace Microsoft.NET.TestFramework
 
         public static readonly string DynamicLibSuffix = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".dll" :
                                                          RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ".dylib" : ".so";
+<<<<<<< HEAD
         public static readonly string? UserProfileFolder = Environment.GetEnvironmentVariable(
                                                                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
                                                                     "USERPROFILE" : "HOME");
+=======
+>>>>>>> Remove manual home variable lookup
     }
 }
