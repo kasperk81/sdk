@@ -3,8 +3,9 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
-using WixToolset.Dtf.WindowsInstaller;
+using Microsoft.Win32.Msi;
 
 if (args.Length < 3)
 {
@@ -99,19 +100,17 @@ static bool DetectSdk(string featureBandVersion, string platform)
 
 static bool RemoveDependent(string dependent)
 {
-    Installer.SetInternalUI(InstallUIOptions.Silent);
+    // Disable MSI UI
+    _ = MsiSetInternalUI((uint)InstallUILevel.NoChange, IntPtr.Zero);
 
     // Open the installer dependencies registry key
-    // This has to be an exhaustive search as we're not looking for a specific provider key, but for a specific dependent
-    // that could be registered against any provider key.
     using var hkInstallerDependenciesKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\Installer\Dependencies", writable: true);
     if (hkInstallerDependenciesKey == null)
     {
         Console.WriteLine("Installer dependencies key does not exist.");
-        return false; // No dependencies to remove
+        return false;
     }
 
-    // Iterate over each provider key in the dependencies
     foreach (string providerKeyName in hkInstallerDependenciesKey.GetSubKeyNames())
     {
         Console.WriteLine($"Processing provider key: {providerKeyName}");
@@ -119,31 +118,16 @@ static bool RemoveDependent(string dependent)
         using var hkProviderKey = hkInstallerDependenciesKey.OpenSubKey(providerKeyName, writable: true);
         if (hkProviderKey == null) continue;
 
-        // Open the Dependents subkey
         using var hkDependentsKey = hkProviderKey.OpenSubKey("Dependents", writable: true);
         if (hkDependentsKey == null) continue;
 
-        // Check if the dependent exists and continue if it does not
-        string[] dependentsKeys = hkDependentsKey.GetSubKeyNames();
-        bool dependentExists = false;
+        bool dependentExists = hkDependentsKey.GetSubKeyNames()
+            .Any(dependentsKeyName => string.Equals(dependentsKeyName, dependent, StringComparison.OrdinalIgnoreCase));
 
-        foreach (string dependentsKeyName in dependentsKeys)
-        {
-            if (string.Equals(dependentsKeyName, dependent, StringComparison.OrdinalIgnoreCase))
-            {
-                dependentExists = true;
-                break;
-            }
-        }
-
-        if (!dependentExists)
-        {
-            continue; // Skip to the next provider key if the dependent does not exist
-        }
+        if (!dependentExists) continue;
 
         Console.WriteLine($"Dependent match found: {dependent}");
 
-        // Attempt to remove the dependent key
         try
         {
             hkDependentsKey.DeleteSubKey(dependent);
@@ -155,16 +139,14 @@ static bool RemoveDependent(string dependent)
             return false;
         }
 
-        // Check if any dependents are left
         if (hkDependentsKey.SubKeyCount == 0)
         {
-            // No remaining dependents, handle product uninstallation
             try
             {
                 string productCode = hkProviderKey.GetValue("ProductId").ToString();
 
-                // Configure the product to be absent
-                Installer.ConfigureProduct(productCode, 0, InstallState.Absent, "");
+                // Configure the product to be absent (uninstall the product)
+                uint error = MsiConfigureProductEx(productCode, (int)InstallUILevel.Default, InstallState.ABSENT, "");
                 Console.WriteLine("Product configured to absent successfully.");
             }
             catch (Exception ex)
@@ -175,7 +157,6 @@ static bool RemoveDependent(string dependent)
         }
         return true;
     }
-
     return false;
 }
 
@@ -244,3 +225,11 @@ static bool IsRebootPending()
   Console.WriteLine("No reboot pending.");
   return false;
 }
+
+[DllImport("msi.dll", CharSet = CharSet.Unicode)]
+[DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+static extern uint MsiConfigureProductEx(string szProduct, int iInstallLevel, InstallState eInstallState, string szCommandLine);
+
+[DllImport("msi.dll", CharSet = CharSet.Unicode)]
+[DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+static extern uint MsiSetInternalUI(uint dwUILevel, IntPtr phWnd);
