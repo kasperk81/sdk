@@ -187,16 +187,8 @@ namespace Microsoft.NET.TestFramework
             // We need to ensure the directory name isn't over 24 characters in length
             if (directoryName.Length > 24)
             {
-                using var sha256 = SHA256.Create();
-                var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(directoryName.ToString()));
-
                 directoryName = directoryName.Remove(13, directoryName.Length - 13)
-                                             .Append("---");
-
-                directoryName = directoryName.AppendFormat("{0:X2}", hash[0])
-                                             .AppendFormat("{0:X2}", hash[1])
-                                             .AppendFormat("{0:X2}", hash[2])
-                                             .AppendFormat("{0:X2}", hash[3]);
+                    .Append("---").Append(Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant());
             }
 
             var directoryPath = Path.Combine(baseDirectory, directoryName.ToString());
