@@ -7,7 +7,7 @@ using Microsoft.Win32.Msi;
 
 namespace Microsoft.DotNet.Finalizer;
 
-internal class CleanupUtility
+internal static class CleanupUtility
 {
     public static bool DetectSdk(SdkFeatureBand featureBandVersion, string platform)
     {
