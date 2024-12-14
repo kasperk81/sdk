@@ -8,6 +8,7 @@
     <UseCurrentRuntimeIdentifier>true</UseCurrentRuntimeIdentifier>
     <_IsPublishing>true</_IsPublishing>
     <PublishDir>$(ArtifactsDir)bin\finalizer\$(Configuration)\$(SdkTargetFramework)-win-$(Architecture)\publish</PublishDir>
+    <RootNamespace>Microsoft.DotNet.Finalizer</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
