@@ -26,6 +26,10 @@
     <PackageReference Include="Microsoft.DotNet.Build.Tasks.Installers" />
   </ItemGroup>
 
+  <Target Name="BuildFinalizer" BeforeTargets="Build" Condition="'$(OS)' == 'Windows_NT' And ('$(Architecture)' == 'x86' Or '$(Architecture)' == 'x64' Or '$(Architecture)' == 'arm64')">
+    <MSBuild Projects="..\finalizer\finalizer.csproj" Properties="Configuration=$(Configuration)" />
+  </Target>
+
   <Import Project="$(RepoRoot)src\Tasks\sdk-tasks\sdk-tasks.InTree.targets" />
   <Import Project="targets\GetRuntimeInformation.targets" />
   <Import Project="targets\SetBuildDefaults.targets" />
